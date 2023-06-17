@@ -4,7 +4,7 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    _ = b.addModule("mem-scanner", .{
+    _ = b.addModule("zignature-scanner", .{
         .source_file = .{ .path = "scanner.zig" },
     });
 
