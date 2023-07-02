@@ -5,7 +5,7 @@ pub const SignatureError = error{
     InvalidSignatureByte,
 };
 
-const SignatureByte = struct {
+pub const SignatureByte = struct {
     is_wildcard: bool,
     byte: ?u8,
 };
