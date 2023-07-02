@@ -35,6 +35,8 @@ pub fn Scanner(comptime signature: []const u8) type {
                 } else if (start_address[i] == cur_byte) {
                     current_index += 1;
                 } else {
+                    // Maybe we just hit the first byte of the signature
+                    i -= 1;
                     current_index = 0;
                 }
             }
