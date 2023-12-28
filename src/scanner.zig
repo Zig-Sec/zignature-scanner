@@ -1,6 +1,11 @@
 const std = @import("std");
 const sig = @import("signature.zig");
 
+const Watcher = struct {
+    address: usize,
+    index: usize,
+};
+
 pub fn Scanner(comptime signature: []const u8) type {
     const size = comptime std.mem.count(u8, signature, " ") + 1;
     return struct {
@@ -18,10 +23,10 @@ pub fn Scanner(comptime signature: []const u8) type {
         /// Scans the given memory range for the byte sequence
         pub fn scan(self: Self, start_address: [*]u8, end_address: [*]u8) ?usize {
             const total = @intFromPtr(end_address) - @intFromPtr(start_address);
-            var watcher = .{ .address = 0x0, .index = 0 };
+            var watcher: Watcher = .{ .address = 0x0, .index = 0 };
             var i: usize = 0;
             while (i < total) : (i += 1) {
-                const current = self.signature.bytes[watcher];
+                const current = self.signature.bytes[watcher.index];
                 // Wildcard is fine, go next
                 if (current.is_wildcard) {
                     // no need to track the watcher's address here
@@ -38,7 +43,7 @@ pub fn Scanner(comptime signature: []const u8) type {
                     if (watcher.address == 0x0) {
                         watcher.address = @intFromPtr(&start_address[i]);
                     }
-                    watcher += 1;
+                    watcher.index += 1;
                 } else {
                     // Maybe we just hit the first byte of the signature
                     i -= 1;
