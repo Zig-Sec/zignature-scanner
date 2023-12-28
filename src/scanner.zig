@@ -25,34 +25,27 @@ pub fn Scanner(comptime signature: []const u8) type {
             const total = @intFromPtr(end_address) - @intFromPtr(start_address);
             var watcher: Watcher = .{ .address = 0x0, .index = 0 };
             var i: usize = 0;
-            while (i < total) : (i += 1) {
-                const current = self.signature.bytes[watcher.index];
-                // Wildcard is fine, go next
-                if (current.is_wildcard) {
-                    // no need to track the watcher's address here
-                    // a wildcard on the first position doesn't matter anyway
+
+            while (i < total - 1) : (i += 1) {
+                if (self.signature.bytes[watcher.index].is_wildcard) {
                     watcher.index += 1;
                     continue;
                 }
-
-                // No Wildcard here, so there must be a byte left...
-                const cur_byte = current.byte.?;
-                if (start_address[i] == cur_byte and watcher.index == (self.signature.bytes.len - 1)) {
+                if (start_address[i] == self.signature.bytes[watcher.index].byte.? and self.signature.bytes.len == watcher.index + 1) {
                     return watcher.address;
-                } else if (start_address[i] == cur_byte) {
-                    if (watcher.address == 0x0) {
-                        watcher.address = @intFromPtr(&start_address[i]);
-                    }
+                } else if (start_address[i] == self.signature.bytes[watcher.index].byte.? and watcher.index + 1 <= i) {
                     watcher.index += 1;
+                    watcher.address = @intFromPtr(&start_address[i -| 1]);
                 } else {
-                    // maybe it's the first byte?
-                    i = i -| 1;
+                    if (watcher.index > 0) {
+                        i -= 1;
+                    }
                     watcher.index = 0;
                     watcher.address = 0x0;
                 }
             }
 
-            return null;
+            return if (watcher.address == 0x0) null else watcher.address;
         }
     };
 }
@@ -66,4 +59,16 @@ test "scanner construction" {
 test "scanner failing construction" {
     try std.testing.expectError(sig.SignatureError.SizeMismatch, Scanner("AA BB ").init());
     try std.testing.expectError(sig.SignatureError.InvalidSignatureByte, Scanner("AA x").init());
+}
+
+test "scan it" {
+    const scanner = try Scanner("AA BB ?? DD").init();
+    var memory = [_]u8{ 0xbb, 0xcc, 0xaa, 0xbb, 0xcc, 0xdd };
+
+    const start: [*]u8 = @ptrCast(&memory[0]);
+    const end: [*]u8 = @ptrCast(&memory[5]);
+
+    const scanned = scanner.scan(start, end);
+
+    try std.testing.expectEqual(@intFromPtr(&memory[2]), scanned orelse return error.TestFailed);
 }
