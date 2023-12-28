@@ -45,14 +45,14 @@ pub fn Scanner(comptime signature: []const u8) type {
                     }
                     watcher.index += 1;
                 } else {
-                    // Maybe we just hit the first byte of the signature
-                    i -= 1;
+                    // maybe it's the first byte?
+                    i = i -| 1;
                     watcher.index = 0;
                     watcher.address = 0x0;
                 }
             }
 
-            return if (watcher.index == (self.signature.bytes.len - 1)) watcher.address else null;
+            return null;
         }
     };
 }
