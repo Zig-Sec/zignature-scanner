@@ -1,4 +1,5 @@
-pub usingnamespace @import("src/scanner.zig");
+const scanner = @import("src/scanner.zig");
+pub const Scanner = scanner.Scanner;
 
 const std = @import("std");
 test "compilation" {
