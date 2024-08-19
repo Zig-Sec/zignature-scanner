@@ -5,11 +5,11 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     _ = b.addModule("zignature-scanner", .{
-        .root_source_file = .{ .path = "scanner.zig" },
+        .root_source_file = b.path("scanner.zig"),
     });
 
     const main_tests = b.addTest(.{
-        .root_source_file = .{ .path = "scanner.zig" },
+        .root_source_file = b.path("scanner.zig"),
         .target = target,
         .optimize = optimize,
     });
