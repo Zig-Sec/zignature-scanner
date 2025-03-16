@@ -15,6 +15,15 @@ pub fn Signature(comptime size: usize) type {
         bytes: @Vector(size, u8),
         mask: @Vector(size, u8),
 
+        fn getNextHigherSize(self: Self, n: usize) usize {
+            if (n / 2 > size) {
+                return self.getNextHigherSize(n / 2);
+            }
+
+            return n;
+        }
+
+        // TODO: add a way to introduce padding
         pub inline fn init(comptime signature: []const u8) !Self {
             comptime {
                 var self = Self{
@@ -61,6 +70,11 @@ pub fn Scanner(comptime signature: []const u8) type {
             };
         }
 
+        /// Function used for testing
+        pub fn vecSize(_: Self) usize {
+            return vector_size;
+        }
+
         pub fn scan(self: Self, start_address: [*]u8, end_address: [*]u8) ?usize {
             var start = start_address;
             const highest_vec_size = comptime simd.suggestVectorLength(u8) orelse 128;
@@ -89,7 +103,7 @@ pub fn Scanner(comptime signature: []const u8) type {
 
                 const as_vector: @Vector(vector_size, u8) = start[0..vector_size].*;
                 const interlaced = simd.interlace(.{ self.signature.bytes, as_vector });
-                const as_arr: [@sizeOf(@TypeOf(interlaced))]u8 = interlaced;
+                const as_arr: [vector_size * 2]u8 = interlaced;
                 var window = std.mem.window(u8, &as_arr, 2, 2);
 
                 var matches = true;
@@ -139,7 +153,7 @@ test "scan it" {
 }
 
 test "scan it (complex)" {
-    const scanner = try Scanner("48 8B 0D ? ? ? ? E8").init();
+    const scanner = try Scanner("48 8B 0D ? ? ? ? E8 44 42 ?? FE").init();
     var memory = [_]u8{ 0xda, 0xde, 0xaa, 0x00, 0x48, 0x8b, 0x0d, 0x12, 0x12, 0xdd, 0xdd, 0xe8, 0x44, 0x42, 0x66, 0xfe, 0x8b, 0xbe, 0x00, 0x00, 0x00, 0x00 };
 
     const start: [*]u8 = @ptrCast(&memory[0]);
@@ -148,4 +162,16 @@ test "scan it (complex)" {
     const scanned = scanner.scan(start, end) orelse return error.TestFailed;
 
     try std.testing.expectEqual(@intFromPtr(&memory[4]), scanned);
+}
+
+test "scan it (bad)" {
+    const scanner = try Scanner("48 8B 0D ? ? ?? ? E8").init();
+    std.debug.print("Size: {d}\n", .{scanner.vecSize()});
+    var memory = [_]u8{ 0xda, 0xde, 0xaa, 0x00, 0x18, 0x8b, 0x0d, 0x12, 0x12, 0xdd, 0xdd, 0xe8, 0x44, 0x42, 0x66, 0xfe, 0x8b, 0xbe, 0x00, 0x00, 0x00, 0x00 };
+
+    const start: [*]u8 = @ptrCast(&memory[0]);
+    const end: [*]u8 = @ptrCast(&memory[memory.len - 1]);
+
+    const scanned = scanner.scan(start, end);
+    try std.testing.expectEqual(null, scanned);
 }
