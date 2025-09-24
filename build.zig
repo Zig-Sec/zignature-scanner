@@ -1,17 +1,17 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const target = b.standardTargetOptions(.{});
 
-    _ = b.addModule("zignature-scanner", .{
-        .root_source_file = b.path("scanner.zig"),
-    });
-
-    const main_tests = b.addTest(.{
+    const root_mod = b.addModule("zignature-scanner", .{
         .root_source_file = b.path("scanner.zig"),
         .target = target,
         .optimize = optimize,
+    });
+
+    const main_tests = b.addTest(.{
+        .root_module = root_mod,
     });
 
     const run_main_tests = b.addRunArtifact(main_tests);
